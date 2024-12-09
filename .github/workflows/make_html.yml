@@ -39,27 +39,32 @@ jobs:
           # Prepare the hyperlink
           HYPERLINK="<p><a href=\"https://github.com/mcpebd/yssmirror/releases/download/$THREE_DIGIT/$FILENAME\">$FILENAME</a><br><code>SHA256: $SHA256</code></p>"
           
-          # Extract the section of the file for the MAJOR_MINOR version
+          # Check if the section for MAJOR_MINOR exists
+          if ! grep -q "<h2>$MAJOR_MINOR</h2>" index.html; then
+            # Add a new section for the MAJOR_MINOR version
+            sed -i "/<h2>[0-9]/i <h2>$MAJOR_MINOR</h2><hr>" index.html
+          fi
+          
+          # Extract the section lines
           SECTION_START=$(grep -n "<h2>$MAJOR_MINOR</h2>" index.html | cut -d: -f1)
           SECTION_END=$(tail -n +$((SECTION_START + 1)) index.html | grep -n -m 1 -E "<h2>|</body>" | cut -d: -f1)
 
-          if [[ -z "$SECTION_START" ]]; then
-            # Add a new section if it doesn't exist
-            sed -i "/<\/body>/i <h2>$MAJOR_MINOR</h2><hr>\n$HYPERLINK" index.html
+          if [ -z "$SECTION_END" ]; then
+            SECTION_END=$(wc -l < index.html)
           else
-            # Extract and sort entries
-            START_LINE=$((SECTION_START + 1))
-            END_LINE=$((START_LINE + SECTION_END - 2))
-            awk "NR < $START_LINE || NR > $END_LINE" index.html > temp.html
-            awk "NR >= $START_LINE && NR <= $END_LINE" index.html > temp_section.html
-
-            # Add the new line and sort
-            echo "$HYPERLINK" >> temp_section.html
-            sort -r -o temp_section.html temp_section.html  # Sort in reverse order
-
-            # Recombine the file
-            cat temp.html temp_section.html > index.html
+            SECTION_END=$((SECTION_START + SECTION_END - 1))
           fi
+          
+          # Extract and insert the hyperlink within the section
+          awk "NR < $SECTION_START || NR > $SECTION_END" index.html > temp.html
+          awk "NR >= $SECTION_START && NR <= $SECTION_END" index.html > temp_section.html
+
+          if ! echo "$HYPERLINK" | grep -q "$(echo "$HYPERLINK" | grep -oP '\d+\.\d+\.\d+')"; then
+            echo "$HYPERLINK" >> temp_section.html
+            sort -r -k1.14 temp_section.html -o temp_section.html  # Sort within the section by version number
+          fi
+
+          cat temp.html temp_section.html > index.html
 
       - name: Commit Changes
         run: |
