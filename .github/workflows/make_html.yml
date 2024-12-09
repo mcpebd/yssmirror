@@ -34,17 +34,31 @@ jobs:
           echo "MAJOR_MINOR=$MAJOR_MINOR" >> $GITHUB_ENV
           echo "THREE_DIGIT=$THREE_DIGIT" >> $GITHUB_ENV
 
-      - name: Update index.html
+      - name: Update index.html Chronologically
         run: |
           # Prepare the hyperlink
           HYPERLINK="<p><a href=\"https://github.com/mcpebd/yssmirror/releases/download/$THREE_DIGIT/$FILENAME\">$FILENAME</a><br><code>SHA256: $SHA256</code></p>"
           
-          # Add the hyperlink under the corresponding section in index.html
-          if grep -q "<h2>$MAJOR_MINOR</h2>" index.html; then
-            sed -i "/<h2>$MAJOR_MINOR<\/h2>/a $HYPERLINK" index.html
-          else
+          # Extract the section of the file for the MAJOR_MINOR version
+          SECTION_START=$(grep -n "<h2>$MAJOR_MINOR</h2>" index.html | cut -d: -f1)
+          SECTION_END=$(tail -n +$((SECTION_START + 1)) index.html | grep -n -m 1 -E "<h2>|</body>" | cut -d: -f1)
+
+          if [[ -z "$SECTION_START" ]]; then
             # Add a new section if it doesn't exist
             sed -i "/<\/body>/i <h2>$MAJOR_MINOR</h2><hr>\n$HYPERLINK" index.html
+          else
+            # Extract and sort entries
+            START_LINE=$((SECTION_START + 1))
+            END_LINE=$((START_LINE + SECTION_END - 2))
+            awk "NR < $START_LINE || NR > $END_LINE" index.html > temp.html
+            awk "NR >= $START_LINE && NR <= $END_LINE" index.html > temp_section.html
+
+            # Add the new line and sort
+            echo "$HYPERLINK" >> temp_section.html
+            sort -r -o temp_section.html temp_section.html  # Sort in reverse order
+
+            # Recombine the file
+            cat temp.html temp_section.html > index.html
           fi
 
       - name: Commit Changes
