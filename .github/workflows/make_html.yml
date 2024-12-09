@@ -39,9 +39,18 @@ jobs:
           # Prepare the hyperlink
           HYPERLINK="<p><a href=\"https://github.com/mcpebd/yssmirror/releases/download/$THREE_DIGIT/$FILENAME\">$FILENAME</a><br><code>SHA256: $SHA256</code></p>"
           
+          # Ensure the file stays structured
+          TEMP_FILE="updated_index.html"
+          awk 'BEGIN {inside_body = 0}
+              /<body>/ {inside_body = 1; print; next}
+              /<\/body>/ {inside_body = 0; print; next}
+              {if (inside_body) print; else print}' index.html > "$TEMP_FILE"
+
+          mv "$TEMP_FILE" index.html
+
           # Check if the section for MAJOR_MINOR exists
           if ! grep -q "<h2>$MAJOR_MINOR</h2>" index.html; then
-            # Add a new section for the MAJOR_MINOR version
+            # Add a new section for the MAJOR_MINOR version in chronological order
             sed -i "/<h2>[0-9]/i <h2>$MAJOR_MINOR</h2><hr>" index.html
           fi
           
@@ -55,14 +64,12 @@ jobs:
             SECTION_END=$((SECTION_START + SECTION_END - 1))
           fi
           
-          # Extract and insert the hyperlink within the section
+          # Modify the section in-place
           awk "NR < $SECTION_START || NR > $SECTION_END" index.html > temp.html
           awk "NR >= $SECTION_START && NR <= $SECTION_END" index.html > temp_section.html
 
-          if ! echo "$HYPERLINK" | grep -q "$(echo "$HYPERLINK" | grep -oP '\d+\.\d+\.\d+')"; then
-            echo "$HYPERLINK" >> temp_section.html
-            sort -r -k1.14 temp_section.html -o temp_section.html  # Sort within the section by version number
-          fi
+          echo "$HYPERLINK" >> temp_section.html
+          sort -r -k1.14 temp_section.html -o temp_section.html
 
           cat temp.html temp_section.html > index.html
 
