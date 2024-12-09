@@ -1,57 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON Data Viewer</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">APK Files with SHA256</h1>
-        <div id="json-table" class="table-responsive"></div>
-    </div>
+name: Update JSON with APK Data
 
-    <script>
-        // Fetch the JSON data from the links.json file
-        fetch('links.json')
-            .then(response => response.json())
-            .then(data => {
-                const jsonTable = document.getElementById('json-table');
-                let tableHTML = '';
+on:
+  workflow_dispatch:
+    inputs:
+      major:
+        description: 'Enter major version (e.g., 1.21)'
+        required: true
+        type: string
+      filename:
+        description: 'Enter filename (e.g., 1.21.44.01_arm32_arm64_patched.apk)'
+        required: true
+        type: string
+      link:
+        description: 'Enter the download link (e.g., https://github.com/mcpebd/yssmirror/releases/download/1.21.44/1.21.44.01_arm32_arm64_patched.apk)'
+        required: true
+        type: string
+      sha256:
+        description: 'Enter the SHA256 hash (e.g., 542fc5d9a997a5c8678e4ada4c40cd916da4db572a0435b69f0023a2efc63dd1)'
+        required: true
+        type: string
 
-                // Loop through the JSON data to build table rows
-                Object.keys(data).forEach(version => {
-                    // Add a version heading
-                    tableHTML += `<h2>${version}</h2>`;
-                    
-                    // Create the table for each version
-                    tableHTML += `<table class="table table-bordered table-striped">
-                                    <thead class="thead-dark">
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Link</th>
-                                            <th>SHA256</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>`;
+jobs:
+  update-json:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-                    data[version].forEach(item => {
-                        tableHTML += `<tr>
-                                        <td>${item.name}</td>
-                                        <td><a href="${item.link}" target="_blank">Download</a></td>
-                                        <td>${item.sha256}</td>
-                                    </tr>`;
-                    });
+      - name: Install jq
+        run: sudo apt-get install jq
 
-                    tableHTML += `</tbody></table>`;
-                });
+      - name: Update JSON with APK Data
+        run: |
+          # Define inputs
+          major_version="${{ github.event.inputs.major }}"
+          filename="${{ github.event.inputs.filename }}"
+          link="${{ github.event.inputs.link }}"
+          sha256="${{ github.event.inputs.sha256 }}"
 
-                jsonTable.innerHTML = tableHTML;
-            })
-            .catch(error => {
-                console.error('Error loading the JSON file:', error);
-            });
-    </script>
-</body>
-</html>
+          # File to update
+          json_file="apk_versions.json"
+
+          # Check if the JSON file exists
+          if [ ! -f "$json_file" ]; then
+            echo "{}" > "$json_file"
+          fi
+
+          # Add new data to JSON using jq
+          jq --arg major "$major_version" --arg filename "$filename" --arg link "$link" --arg sha256 "$sha256" \
+            '
+              .[$major] = [
+                {
+                  "name": $filename,
+                  "link": $link,
+                  "sha256": $sha256
+                ]
+              ]
+            ' "$json_file" > tmp.json && mv tmp.json "$json_file"
+
+          # Commit changes back to the repository
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+          git add "$json_file"
+          git commit -m "Update JSON with new APK version $major_version"
+          git push
