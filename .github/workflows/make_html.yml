@@ -1,82 +1,57 @@
-name: Update APK Index
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Data Viewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">APK Files with SHA256</h1>
+        <div id="json-table" class="table-responsive"></div>
+    </div>
 
-on:
-  workflow_dispatch:
-    inputs:
-      filename:
-        description: "Enter the filename"
-        required: true
-      sha256:
-        description: "Enter the SHA256 hash"
-        required: true
+    <script>
+        // Fetch the JSON data from the links.json file
+        fetch('links.json')
+            .then(response => response.json())
+            .then(data => {
+                const jsonTable = document.getElementById('json-table');
+                let tableHTML = '';
 
-jobs:
-  update-index:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+                // Loop through the JSON data to build table rows
+                Object.keys(data).forEach(version => {
+                    // Add a version heading
+                    tableHTML += `<h2>${version}</h2>`;
+                    
+                    // Create the table for each version
+                    tableHTML += `<table class="table table-bordered table-striped">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Link</th>
+                                            <th>SHA256</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
 
-      - name: Process User Input
-        id: process_input
-        run: |
-          # Extract inputs
-          FILENAME="${{ github.event.inputs.filename }}"
-          SHA256="${{ github.event.inputs.sha256 }}"
-          
-          # Parse version numbers
-          MAJOR_MINOR=$(echo "$FILENAME" | grep -oP '^\d+\.\d+')
-          THREE_DIGIT=$(echo "$FILENAME" | grep -oP '^\d+\.\d+\.\d+')
-          
-          # Save them as environment variables
-          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
-          echo "SHA256=$SHA256" >> $GITHUB_ENV
-          echo "MAJOR_MINOR=$MAJOR_MINOR" >> $GITHUB_ENV
-          echo "THREE_DIGIT=$THREE_DIGIT" >> $GITHUB_ENV
+                    data[version].forEach(item => {
+                        tableHTML += `<tr>
+                                        <td>${item.name}</td>
+                                        <td><a href="${item.link}" target="_blank">Download</a></td>
+                                        <td>${item.sha256}</td>
+                                    </tr>`;
+                    });
 
-      - name: Update index.html Chronologically
-        run: |
-          # Prepare the hyperlink
-          HYPERLINK="<p><a href=\"https://github.com/mcpebd/yssmirror/releases/download/$THREE_DIGIT/$FILENAME\">$FILENAME</a><br><code>SHA256: $SHA256</code></p>"
-          
-          # Ensure the file stays structured
-          TEMP_FILE="updated_index.html"
-          awk 'BEGIN {inside_body = 0}
-              /<body>/ {inside_body = 1; print; next}
-              /<\/body>/ {inside_body = 0; print; next}
-              {if (inside_body) print; else print}' index.html > "$TEMP_FILE"
+                    tableHTML += `</tbody></table>`;
+                });
 
-          mv "$TEMP_FILE" index.html
-
-          # Check if the section for MAJOR_MINOR exists
-          if ! grep -q "<h2>$MAJOR_MINOR</h2>" index.html; then
-            # Add a new section for the MAJOR_MINOR version in chronological order
-            sed -i "/<h2>[0-9]/i <h2>$MAJOR_MINOR</h2><hr>" index.html
-          fi
-          
-          # Extract the section lines
-          SECTION_START=$(grep -n "<h2>$MAJOR_MINOR</h2>" index.html | cut -d: -f1)
-          SECTION_END=$(tail -n +$((SECTION_START + 1)) index.html | grep -n -m 1 -E "<h2>|</body>" | cut -d: -f1)
-
-          if [ -z "$SECTION_END" ]; then
-            SECTION_END=$(wc -l < index.html)
-          else
-            SECTION_END=$((SECTION_START + SECTION_END - 1))
-          fi
-          
-          # Modify the section in-place
-          awk "NR < $SECTION_START || NR > $SECTION_END" index.html > temp.html
-          awk "NR >= $SECTION_START && NR <= $SECTION_END" index.html > temp_section.html
-
-          echo "$HYPERLINK" >> temp_section.html
-          sort -r -k1.14 temp_section.html -o temp_section.html
-
-          cat temp.html temp_section.html > index.html
-
-      - name: Commit Changes
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add index.html
-          git commit -m "Update index.html with new APK $FILENAME"
-          git push
+                jsonTable.innerHTML = tableHTML;
+            })
+            .catch(error => {
+                console.error('Error loading the JSON file:', error);
+            });
+    </script>
+</body>
+</html>
