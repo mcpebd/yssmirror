@@ -1,80 +1,56 @@
-name: Update index.html on new release file
+name: Update APK Index
 
 on:
-  release:
-    types:
-      - released
+  workflow_dispatch:
+    inputs:
+      filename:
+        description: "Enter the filename"
+        required: true
+      sha256:
+        description: "Enter the SHA256 hash"
+        required: true
 
 jobs:
-  update-html:
-    name: Update index.html
+  update-index:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout the repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Download the release asset
-        id: download_asset
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const release = await github.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: context.payload.release.tag_name,
-            });
-            const asset = release.data.assets.find(a => a.name.endsWith('.apk'));
-            if (!asset) throw new Error('No APK file found in the release.');
-            core.setOutput('asset_name', asset.name);
-            core.setOutput('asset_url', asset.browser_download_url);
-
-      - name: Download the file
+      - name: Process User Input
+        id: process_input
         run: |
-          curl -L ${{ steps.download_asset.outputs.asset_url }} -o file.apk
-        shell: bash
-
-      - name: Compute SHA256 checksum
-        id: compute_sha
-        run: |
-          sha256sum file.apk | awk '{print $1}' > checksum.txt
-        shell: bash
-
-      - name: Parse file name for version
-        id: parse_version
-        run: |
-          FILE_NAME="${{ steps.download_asset.outputs.asset_name }}"
-          VERSION=$(echo "$FILE_NAME" | awk -F'_' '{print $1}' | awk -F'.' '{print $1 "." $2}')
-          echo "version=$VERSION" >> $GITHUB_ENV
-          echo "filename=$FILE_NAME" >> $GITHUB_ENV
+          # Extract inputs
+          FILENAME="${{ github.event.inputs.filename }}"
+          SHA256="${{ github.event.inputs.sha256 }}"
+          
+          # Parse version numbers
+          MAJOR_MINOR=$(echo "$FILENAME" | grep -oP '^\d+\.\d+')
+          THREE_DIGIT=$(echo "$FILENAME" | grep -oP '^\d+\.\d+\.\d+')
+          
+          # Save them as environment variables
+          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
+          echo "SHA256=$SHA256" >> $GITHUB_ENV
+          echo "MAJOR_MINOR=$MAJOR_MINOR" >> $GITHUB_ENV
+          echo "THREE_DIGIT=$THREE_DIGIT" >> $GITHUB_ENV
 
       - name: Update index.html
         run: |
-          # Extract necessary variables
-          VERSION="${{ env.version }}"
-          FILE_NAME="${{ env.filename }}"
-          SHA256=$(cat checksum.txt)
-
-          # File to edit
-          INDEX_FILE=index.html
-
-          # Generate the HTML snippet
-          NEW_ENTRY="<p><a href=\"https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/$FILE_NAME\">$FILE_NAME</a><br><code>SHA256: $SHA256</code></p>\n"
-
-          # Update the file
-          if ! grep -q "<h2>$VERSION</h2>" $INDEX_FILE; then
-            # If version header doesn't exist, add it
-            printf "<h2>$VERSION</h2><hr>\n$NEW_ENTRY\n" > temp.html
-            sed -i "/<\/body>/i $(cat temp.html)" $INDEX_FILE
+          # Prepare the hyperlink
+          HYPERLINK="<p><a href=\"https://github.com/mcpebd/yssmirror/releases/download/$THREE_DIGIT/$FILENAME\">$FILENAME</a><br><code>SHA256: $SHA256</code></p>"
+          
+          # Add the hyperlink under the corresponding section in index.html
+          if grep -q "<h2>$MAJOR_MINOR</h2>" index.html; then
+            sed -i "/<h2>$MAJOR_MINOR<\/h2>/a $HYPERLINK" index.html
           else
-            # Insert the new entry under the existing version section
-            sed -i "/<h2>$VERSION<\/h2>/,/^$/ s/^$/\n$NEW_ENTRY/" $INDEX_FILE
+            # Add a new section if it doesn't exist
+            sed -i "/<\/body>/i <h2>$MAJOR_MINOR</h2><hr>\n$HYPERLINK" index.html
           fi
 
-      - name: Commit and push changes
+      - name: Commit Changes
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
           git add index.html
-          git commit -m "Update index.html with new file: ${{ env.filename }}"
+          git commit -m "Update index.html with new APK $FILENAME"
           git push
