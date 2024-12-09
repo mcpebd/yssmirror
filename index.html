@@ -1,33 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YSS Patched Minecraft APKs #yssmirror</title>
+    <title>JSON Data Viewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <style>
-        a {text-decoration: none;}
-        body {display:flex; flex-direction: column; font-family: sans-serif;}
+        body {
+            background-color: #f8f9fa;
+        }
+        .table-container {
+            margin-top: 30px;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
     </style>
 </head>
-
 <body>
-    <h1>YSS Patched Minecraft APKs (fanmade mirror)</h1>
-    <p>Last updated: Dec 09, 2024</p>
-    <p>YSS APKs are being taken down. So, I decided to mirror their APKs here.</p>
-    <p style="color: red; font-weight: bold;">I am NOT the creator of these APKs.</p>
-    <p style="margin-bottom:50px;">Useful links: <a href="https://discord.gg/yss">YSS Discord server</a> | <a href="https://yss.minecraft.pe">YSS website</a></p>
-    <h2>1.20</h2><hr>   
-    <br>
-    <h2>1.19</h2><hr>
-    <br>
-</body>
+    <div class="container table-container">
+        <h1 class="text-center mb-4">APK Files with SHA256</h1>
+        <div id="json-table" class="table-responsive"></div>
+    </div>
 
+    <script>
+        // Fetch the JSON data from the links.json file
+        fetch('links.json')
+            .then(response => response.json())
+            .then(data => {
+                const jsonTable = document.getElementById('json-table');
+                let tableHTML = `<table class="table table-bordered table-striped">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Link</th>
+                                            <th>SHA256</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+
+                // Loop through the JSON data to build table rows
+                Object.keys(data).forEach(version => {
+                    data[version].forEach(item => {
+                        tableHTML += `<tr>
+                                        <td>${item.name}</td>
+                                        <td><a href="${item.link}" target="_blank">Download</a></td>
+                                        <td>${item.sha256}</td>
+                                    </tr>`;
+                    });
+                });
+
+                tableHTML += `</tbody></table>`;
+                jsonTable.innerHTML = tableHTML;
+            })
+            .catch(error => {
+                console.error('Error loading the JSON file:', error);
+            });
+    </script>
+</body>
 </html>
-<p><a href="https://github.com/mcpebd/yssmirror/releases/download/1.21.2/1.21.2.02_arm32_arm64_patched.apk">1.21.2.02_arm32_arm64_patched.apk</a><br><code>SHA256: bacb3fcbd74df486ebdbbb898598ce7efba8435365531ceecd76ee7d9ba8f941</code></p>
-    <p><a href="https://github.com/mcpebd/yssmirror/releases/download/1.21.44/1.21.44.01_arm32_arm64_patched.apk">1.21.44.01_arm32_arm64_patched.apk</a><br><code>SHA256: 542fc5d9a997a5c8678e4ada4c40cd916da4db572a0435b69f0023a2efc63dd1</code></p>
-    <p><a href="https://github.com/mcpebd/yssmirror/releases/download/1.21.30/1.21.30.03_arm32_arm64_patched.apk">1.21.30.03_arm32_arm64_patched.apk</a><br><code>SHA256: 1df24ea56b84d90a8f4957e12fe764dcc32df13b603b633e236d721588b3c101</code></p>
-    <p><a href="https://github.com/mcpebd/yssmirror/releases/download/1.21.1/1.21.1.03_arm32_arm64_patched.apk">1.21.1.03_arm32_arm64_patched.apk</a><br><code>SHA256: 07e2753f3b419a0e551e2be7ad6bb443aaa7ae0ca32d2e033cd99bd5b969f09c</code></p>
-<p><a href="https://github.com/mcpebd/yssmirror/releases/download/1.21.2/1.21.2.02_arm32_arm64_patched.apk">1.21.2.02_arm32_arm64_patched.apk</a><br><code>SHA256: bacb3fcbd74df486ebdbbb898598ce7efba8435365531ceecd76ee7d9ba8f941</code></p>
-    <h2>1.21</h2><hr>
-    <br>
