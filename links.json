@@ -10,11 +10,7 @@
         "link": "https://github.com/mcpebd/yssmirror/releases/download/1.21.30/1.21.30.03_arm32_arm64_patched.apk",
         "sha256": "1df24ea56b84d90a8f4957e12fe764dcc32df13b603b633e236d721588b3c101"
       },
-      {
-        "name": "1.21.2.02_arm32_arm64_patched.apk",
-        "link": "https://github.com/mcpebd/yssmirror/releases/download/1.21.2/1.21.2.02_arm32_arm64_patched.apk",
-        "sha256": "bacb3fcbd74df486ebdbbb898598ce7efba8435365531ceecd76ee7d9ba8f941"
-      },
+
       {
         "name": "1.21.1.03_arm32_arm64_patched.apk",
         "link": "https://github.com/mcpebd/yssmirror/releases/download/1.21.1/1.21.1.03_arm32_arm64_patched.apk",
