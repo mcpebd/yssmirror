@@ -1,34 +1,53 @@
-name: Download and upload
+name: Download and Upload with Tag
 
 on:
   workflow_dispatch:
     inputs:
-      release_tag:
-        description: 'Release tag'
+      LINK:
+        description: 'The URL to download the file from'
         required: true
-      link:
-        description: 'Link'
+        type: string
+      TAG:
+        description: 'The tag for the release'
         required: true
+        type: string
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
+  download-and-upload:
+    runs-on: windows-latest
 
     steps:
-    - name: Download file with curl
-      run: |
-        curl -L -O "${{ github.event.inputs.link }}"
-        DOWNLOADED_FILE=$(basename "${{ github.event.inputs.link }}")
-        echo "DOWNLOADED_FILE=$DOWNLOADED_FILE" >> $GITHUB_ENV
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Calculate SHA256 checksum
-      run: |
-        SHA256=$(sha256sum "$DOWNLOADED_FILE" | awk '{ print $1 }')
-        echo "SHA256=$SHA256" >> $GITHUB_ENV
+      - name: Set up curl and hash
+        run: |
+          # Set environment variables for inputs
+          echo "LINK=${{ github.event.inputs.LINK }}" >> $GITHUB_ENV
+          echo "TAG=${{ github.event.inputs.TAG }}" >> $GITHUB_ENV
 
-    - name: Upload to release
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        gh release create ${{ github.event.inputs.release_tag }} "$DOWNLOADED_FILE" --title "${{ github.event.inputs.release_tag }}" --notes "SHA256sum:\n\`\`\`\n${SHA256}\n\`\`\`"
-          --latest
+      - name: Download file using curl
+        run: |
+          curl -L -O $LINK
+
+      - name: Run sort.bat with TAG
+        run: |
+          sort.bat $TAG
+
+      - name: Calculate SHA256 checksum
+        run: |
+          $file = (Get-ChildItem *.apk).Name
+          $sha256 = Get-FileHash $file -Algorithm SHA256
+          $sha256.Hash | Out-File sha256.txt
+
+      - name: Read SHA256 checksum from hash.txt
+        run: |
+          $sha256sum = Get-Content sha256.txt
+          echo "SHA256: $sha256sum"
+
+      - name: Upload release asset to GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Create release and upload asset
+          gh release create $TAG $(Get-ChildItem *.apk).Name --notes "SHA256sum:\n```$sha256sum\n```"
