@@ -3,8 +3,6 @@ setlocal enabledelayedexpansion
 
 set list=links.json
 
-del /q /s tmp.json
-
 set "input_major=%1"
 set "input_major=%input_major:~0,4%"
 for %%f in (*.apk) do (
