@@ -44,8 +44,18 @@ jobs:
       - name: Read SHA256 checksum from hash.txt
         run: |
           $sha256sum = Get-Content sha256.txt
+          del /q /s sha256.txt
           echo "SHA256: $sha256sum"
+          
+      - name: Upload release asset to GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Create release and upload asset
+          gh release create ${{ github.event.inputs.TAG }} $(Get-ChildItem *.apk).Name --notes "SHA256sum:\n```$sha256sum\n```"
+          del /q /s *.apk
 
+          
       - name: Commit changes and push to repository
         run: |
           git config --global user.name "GitHub Actions"
@@ -53,10 +63,3 @@ jobs:
           git add .
           git commit -m "Add downloaded file and SHA256 checksum"
           git push
-
-      - name: Upload release asset to GitHub
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Create release and upload asset
-          gh release create ${{ github.event.inputs.TAG }} $(Get-ChildItem *.apk).Name --notes "SHA256sum:\n```$sha256sum\n```"
