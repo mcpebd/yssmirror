@@ -11,11 +11,12 @@ for %%f in (*.apk) do (
 for /f "tokens=* skip=1" %%a in ('CertUtil -hashfile "%filename%" SHA256') do set sha256=%%a & echo %%a>hash.txt & goto break
 :break
 
+del /q /s links.json
 for /f "delims=" %%A in (%list%) do (
     set "memoire=%%A"
     if "!memoire:~-8,4!" equ "%input_major%" (
-        echo %%A>>tmp.json
-        echo       {"name":"%filename%","link":"%input_link%","sha256":"%sha256: =%"},>>tmp.json
+        echo %%A>>links.json
+        echo       {"name":"%filename%","link":"%input_link%","sha256":"%sha256: =%"},>>links.json
     ) else (
         echo %%A>>tmp.json
     )
