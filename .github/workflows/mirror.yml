@@ -1,0 +1,34 @@
+name: Download and upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag'
+        required: true
+      link:
+        description: 'Link'
+        required: true
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download file with curl
+      run: |
+        curl -L -O "${{ github.event.inputs.link }}"
+        DOWNLOADED_FILE=$(basename "${{ github.event.inputs.link }}")
+        echo "DOWNLOADED_FILE=$DOWNLOADED_FILE" >> $GITHUB_ENV
+
+    - name: Calculate SHA256 checksum
+      run: |
+        SHA256=$(sha256sum "$DOWNLOADED_FILE" | awk '{ print $1 }')
+        echo "SHA256=$SHA256" >> $GITHUB_ENV
+
+    - name: Upload to release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create ${{ github.event.inputs.release_tag }} "$DOWNLOADED_FILE" --title "${{ github.event.inputs.release_tag }}" --notes "SHA256sum:\n\`\`\`\n${SHA256}\n\`\`\`"
+          --latest
