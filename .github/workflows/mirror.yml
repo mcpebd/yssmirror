@@ -28,11 +28,11 @@ jobs:
 
       - name: Download file using curl
         run: |
-          curl -L -O $LINK
+          curl -L -O ${{ github.event.inputs.LINK }}
 
       - name: Run sort.bat with TAG
         run: |
-          sort.bat $TAG
+          sort.bat ${{ github.event.inputs.TAG }}
 
       - name: Calculate SHA256 checksum
         run: |
@@ -58,4 +58,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Create release and upload asset
-          gh release create $TAG $(Get-ChildItem *.apk).Name --notes "SHA256sum:\n```$sha256sum\n```"
+          gh release create ${{ github.event.inputs.TAG }} $(Get-ChildItem *.apk).Name --notes "SHA256sum:\n```$sha256sum\n```"
