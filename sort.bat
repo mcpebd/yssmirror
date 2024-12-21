@@ -17,6 +17,6 @@ for /f "delims=" %%A in (%list%) do (
         echo %%A>>links.json
         echo       {"name":"%filename%","link":"%input_link%","sha256":"%sha256: =%"},>>links.json
     ) else (
-        echo %%A>>tmp.json
+        echo %%A>>links.json
     )
 )
