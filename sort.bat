@@ -8,7 +8,7 @@ set "input_major=%input_major:~0,4%"
 for %%f in (*.apk) do (
     set "filename=%%~nxf"
 )
-for /f "tokens=* skip=1" %%a in ('CertUtil -hashfile "%filename%" SHA256') do set sha256=%%a & echo %%a>hash.txt & goto break
+for /f "tokens=* skip=1" %%a in ('CertUtil -hashfile "%filename%" SHA256') do set sha256=%%a & goto break
 :break
 
 del /q /s links.json
