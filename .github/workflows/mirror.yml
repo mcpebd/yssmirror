@@ -33,7 +33,7 @@ jobs:
       - name: Run sort.bat with TAG
         run: |
           tree /f
-          if exist links.json del /q /s links.json
+          if exist links.json (del /q /s links.json)
           .\sort.bat ${{ github.event.inputs.TAG }}
 
       - name: Calculate SHA256 checksum
