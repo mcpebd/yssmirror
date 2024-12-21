@@ -34,7 +34,6 @@ jobs:
         run: |
           tree /f
           .\sort.bat ${{ github.event.inputs.TAG }}
-          sort.bat ${{ github.event.inputs.TAG }}
 
       - name: Calculate SHA256 checksum
         run: |
