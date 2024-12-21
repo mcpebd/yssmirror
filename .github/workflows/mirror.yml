@@ -45,6 +45,14 @@ jobs:
           $sha256sum = Get-Content sha256.txt
           echo "SHA256: $sha256sum"
 
+      - name: Commit changes and push to repository
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Add downloaded file and SHA256 checksum"
+          git push
+
       - name: Upload release asset to GitHub
         env:
           GH_TOKEN: ${{ github.token }}
